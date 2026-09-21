@@ -400,7 +400,10 @@ describe("ProfileStore settings and import/export", () => {
   it("exports encrypted JSON with profile metadata and imports it back", async () => {
     const store = makeStore();
     await store.initialize();
-    await writeProfile(tempRoot, "p1", "Exported", "export@example.com");
+    await writeProfile(tempRoot, "p1", "Exported", "export@example.com", {
+      planType: "plus",
+      usage: usagePercent(50)
+    });
     const exportPath = path.join(tempRoot, "exports", "accounts.json");
     const passphrase = "test-export-pass-phrase";
     const exported = await store.exportProfilesTo(exportPath, passphrase);
@@ -420,8 +423,14 @@ describe("ProfileStore settings and import/export", () => {
     expect(importResult.count).toBe(1);
     // All imported profiles are READY — none set as active
     const state = await importedStore.getState();
-    expect(state.profiles[0]).toEqual(expect.objectContaining({ name: "Exported", email: "export@example.com" }));
+    expect(state.profiles[0]).toEqual(expect.objectContaining({
+      name: "Exported",
+      email: "export@example.com",
+      planType: "plus"
+    }));
+    expect(state.profiles[0].usage?.weekly?.remaining).toBe(50);
     expect(state.profiles[0].isActive).toBe(false);
+    expect(state.settings.availabilityByProfile[state.profiles[0].id]?.status).toBe("available");
   });
   it("previewImportFrom returns profile list without writing", async () => {
     const store = makeStore();
@@ -482,7 +491,7 @@ async function writeProfile(
   id: string,
   name: string,
   email?: string,
-  options: { writeAuth?: boolean; appFiles?: Record<string, string>; usage?: UsageSnapshot } = {}
+  options: { writeAuth?: boolean; appFiles?: Record<string, string>; usage?: UsageSnapshot; planType?: string } = {}
 ) {
   const profileRoot = path.join(root, "profiles", id);
   await fs.mkdir(profileRoot, { recursive: true });
@@ -490,6 +499,7 @@ async function writeProfile(
     id,
     name,
     email,
+    planType: options.planType,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     usage: options.usage

@@ -184,6 +184,7 @@ export interface ProfileSwitcherApi {
   deleteProfile(input: ProfileActionInput): Promise<AppState>;
   renameProfile(input: ProfileActionInput & { name: string }): Promise<AppState>;
   refreshUsage(input: ProfileActionInput): Promise<UsageSnapshot>;
+  refreshAllQuotas(): Promise<AppState>;
   updateSettings(input: SettingsUpdateInput): Promise<AppState>;
   updateServiceState(input: ServiceStateInput): Promise<AppState>;
   exportProfiles(input?: { passphrase?: string }): Promise<ProfileExportResult>;

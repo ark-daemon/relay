@@ -288,8 +288,10 @@ describe("App", () => {
  weekly: { remaining: 10, limit: 100 },
  pools: [{ id: "codex-weekly", label: "Weekly", status: "available", remaining: 10, limit: 100 }]
  }));
- // SAFETY: mocking getState method on ProfileSwitcherApi
- window.profileSwitcher.getState = vi.fn(async () => refreshedState) as ProfileSwitcherApi["getState"];
+    // SAFETY: mocking refreshAllQuotas method on ProfileSwitcherApi
+    window.profileSwitcher.refreshAllQuotas = vi.fn(async () => refreshedState) as ProfileSwitcherApi["refreshAllQuotas"];
+    // SAFETY: mocking getState method on ProfileSwitcherApi
+    window.profileSwitcher.getState = vi.fn(async () => refreshedState) as ProfileSwitcherApi["getState"];
  render(<App />);
  const refreshButton = await screen.findByTitle("Refresh all quotas");
  fireEvent.click(refreshButton);
@@ -480,6 +482,7 @@ function fakeApi(state: AppState): ProfileSwitcherApi {
     deleteProfile: vi.fn(async () => state),
     renameProfile: vi.fn(async () => state),
     refreshUsage: vi.fn(async () => ({ status: "unavailable" })),
+    refreshAllQuotas: vi.fn(async () => state),
     updateSettings: vi.fn(async () => state),
     updateServiceState: vi.fn(async () => state),
     exportProfiles: vi.fn(async () => ({ count: 1 })),

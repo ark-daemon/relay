@@ -398,14 +398,10 @@ export function App() {
     setRefreshingAll(true);
     setMessage(undefined);
     try {
-      await Promise.all(state.profiles.map(async (profile) => {
-        try {
-          await api.refreshUsage({ profileId: profile.id });
-        } catch {
-          // Keep the existing quota visible when an individual refresh fails.
-        }
-      }));
-      setState(await api.getState());
+      const nextState = await api.refreshAllQuotas();
+      setState(nextState);
+    } catch (error) {
+      setMessage({ kind: "error", text: errorMessage(error) });
     } finally {
       setRefreshingAll(false);
     }
@@ -529,6 +525,7 @@ export function App() {
               await loadState(false);
               const template = result.count === 1 ? copy.messages.imported : copy.messages.importedPlural;
               setMessage({ kind: "success", text: formatMessage(template, { count: result.count }) });
+              void refreshAll();
               return true;
             });
           },
@@ -552,6 +549,7 @@ export function App() {
       await loadState(false);
       const template = result.count === 1 ? copy.messages.imported : copy.messages.importedPlural;
       setMessage({ kind: "success", text: formatMessage(template, { count: result.count }) });
+      void refreshAll();
     });
   }
   async function updateSettings(input: SettingsUpdateInput) {

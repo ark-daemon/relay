@@ -33,6 +33,7 @@ const api: ProfileSwitcherApi = {
   deleteProfile: (input: ProfileActionInput) => invokeIpc<AppState>("profiles:delete", input),
   renameProfile: (input: ProfileActionInput & { name: string }) => invokeIpc<AppState>("profiles:rename", input),
   refreshUsage: (input: ProfileActionInput) => invokeIpc<UsageSnapshot>("usage:refresh", input),
+  refreshAllQuotas: () => invokeIpc<AppState>("usage:refresh-all"),
   updateSettings: (input: SettingsUpdateInput) => invokeIpc<AppState>("settings:update", input),
   updateServiceState: (input: ServiceStateInput) => invokeIpc<AppState>("service:update-state", input),
   exportProfiles: (input?: { passphrase?: string }) => invokeIpc<ProfileExportResult>("profiles:export", input),

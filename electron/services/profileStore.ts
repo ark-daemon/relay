@@ -49,6 +49,8 @@ interface ExportedProfile {
   id: string;
   name: string;
   email?: string;
+  planType?: string;
+  usage?: UsageSnapshot;
   createdAt: string;
   updatedAt: string;
   isActive: boolean;
@@ -67,6 +69,8 @@ interface RawImportProfileEntry {
   id?: string;
   name?: string;
   email?: string;
+  planType?: string;
+  usage?: UsageSnapshot;
   createdAt?: string;
   updatedAt?: string;
   isActive?: boolean;
@@ -74,6 +78,8 @@ interface RawImportProfileEntry {
   manifest?: {
     name?: string;
     email?: string;
+    planType?: string;
+    usage?: UsageSnapshot;
     createdAt?: string;
   };
 }
@@ -690,7 +696,11 @@ export class ProfileStore {
       lowQuotaCrossed: boolean;
       lowQuotaPercent?: number;
     }> = [];
-    for (const profile of profiles) {
+    for (let i = 0; i < profiles.length; i++) {
+      const profile = profiles[i];
+      if (i > 0) {
+        await delay(200);
+      }
       const previousState = settings.availabilityByProfile[profile.id];
       const previous = previousState?.status ?? "unknown";
       const previousPercent = quotaPercent(previousState?.lastUsage);
@@ -754,6 +764,8 @@ export class ProfileStore {
         id: manifest.id,
         name: manifest.name,
         email: manifest.email,
+        planType: manifest.planType,
+        usage: manifest.usage,
         createdAt: manifest.createdAt,
         updatedAt: manifest.updatedAt,
         isActive: manifest.id === activeProfileId,
@@ -812,12 +824,15 @@ export class ProfileStore {
       throw new Error("This file doesn't look like a Relay export.");
     }
     let count = 0;
+    const importedAvailabilities: Record<string, AvailabilityState> = {};
     for (const e of bundle.profiles) {
       if (!e) continue;
       // Support both the new v2 shape and the old v1 shape (which had a nested manifest).
       const legacy = e.manifest;
       const name = String((e.name ?? legacy?.name) || "Imported Codex profile");
       const email = e.email ?? legacy?.email;
+      const planType = e.planType ?? legacy?.planType;
+      const usage = e.usage ?? legacy?.usage;
       const createdAt = String(e.createdAt ?? legacy?.createdAt ?? new Date().toISOString());
       // Generate a stable but unique profile id for the target store.
       const id = createProfileId(name);
@@ -836,15 +851,29 @@ export class ProfileStore {
         id,
         name,
         email: email ? String(email) : undefined,
+        planType: planType ? String(planType) : undefined,
+        usage: usage ? usage : undefined,
         createdAt,
         updatedAt: new Date().toISOString()
       });
+      if (usage) {
+        importedAvailabilities[id] = {
+          profileId: id,
+          status: this.usageService.deriveAvailability(usage),
+          poolStatuses: poolStatusesFromSnapshot(usage),
+          lastUsage: usage,
+          updatedAt: new Date().toISOString()
+        };
+      }
       count += 1;
     }
     // Do NOT auto-activate any profile — all imported profiles start as READY.
     // The user activates one explicitly by clicking USE.
     await this.settingsStore.update((settings) => {
       delete settings.activeProfileId;
+      for (const [id, avail] of Object.entries(importedAvailabilities)) {
+        settings.availabilityByProfile[id] = avail;
+      }
     });
     return { path: filePath, count };
   }

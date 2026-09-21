@@ -235,6 +235,11 @@ function registerIpc(): void {
     await profileStore.autoSwitchIfNeeded();
     return snapshot;
   }));
+  safeHandle("usage:refresh-all", () => mutate(async () => {
+    await profileStore.refreshAllUsage();
+    await profileStore.autoSwitchIfNeeded();
+    return profileStore.getState();
+  }));
   safeHandle("settings:update", (_event, input: SettingsUpdateInput) => mutate(async () => {
     let state = await profileStore.updateSettings(input);
     if (input.autoSwitchEnabled !== undefined || input.autoSwitchThresholdPercent !== undefined) {
@@ -524,55 +529,73 @@ function showTrayNotification(body: string): void {
   new Notification({ title: "Relay", body }).show();
 }
 
-app.whenReady().then(async () => {
-  const processManager = new CrossPlatformProcessManager();
-  const usageService = new UsageService();
-  const loginCaptureService = new CodexLoginCaptureService({
-    openExternal: async (url) => {
-      try {
-        await shell.openExternal(url);
-      } catch {
-        throw new Error(
-          `Unable to open your default browser. Please check your default browser settings, or copy and open this URL manually:\n${url}`
-        );
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore();
       }
-    },
-  });
-  profileStore = new ProfileStore(storageRoot, processManager, usageService, loginCaptureService);
-  await profileStore.initialize();
-  await profileStore.ensureInitialProfiles();
-  const initialState = await profileStore.getState();
-  await applyProxySettings(initialState.settings);
-  // Apply the saved colour scheme before creating the window so the OS titlebar
-  // gets the correct light/dark treatment immediately.
-  const savedTheme = initialState.settings.theme;
-  const initialTheme: "light" | "dark" = savedTheme === "system"
-    ? (nativeTheme.shouldUseDarkColors ? "dark" : "light")
-    : savedTheme === "light"
-    ? "light"
-    : "dark";
-  applyNativeTheme(initialTheme);
-
-  const notifications = new NotificationService(() => mainWindow, switchFromNotification, appIconPath);
-  usagePoller = new UsagePoller(profileStore, notifications, broadcastStateChanged);
-  activeProfileSyncer = new ActiveProfileSyncer(profileStore, processManager, broadcastStateChanged);
-  registerIpc();
-
-  mainWindow = createWindow();
-  createTray();
-  if (initialState.settings.serviceRunning) {
-    usagePoller.start();
-  }
-  activeProfileSyncer.start();
-
-  initializeAutoUpdater();
-
-  app.on("activate", () => {
-    if (!mainWindow) {
-      mainWindow = createWindow();
+      if (!mainWindow.isVisible()) {
+        mainWindow.show();
+      }
+      mainWindow.focus();
     }
   });
-});
+
+  app.whenReady().then(async () => {
+    const processManager = new CrossPlatformProcessManager();
+    const usageService = new UsageService();
+    const loginCaptureService = new CodexLoginCaptureService({
+      openExternal: async (url) => {
+        try {
+          await shell.openExternal(url);
+        } catch {
+          throw new Error(
+            `Unable to open your default browser. Please check your default browser settings, or copy and open this URL manually:\n${url}`
+          );
+        }
+      },
+    });
+    profileStore = new ProfileStore(storageRoot, processManager, usageService, loginCaptureService);
+    await profileStore.initialize();
+    await profileStore.ensureInitialProfiles();
+    const initialState = await profileStore.getState();
+    await applyProxySettings(initialState.settings);
+    // Apply the saved colour scheme before creating the window so the OS titlebar
+    // gets the correct light/dark treatment immediately.
+    const savedTheme = initialState.settings.theme;
+    const initialTheme: "light" | "dark" = savedTheme === "system"
+      ? (nativeTheme.shouldUseDarkColors ? "dark" : "light")
+      : savedTheme === "light"
+      ? "light"
+      : "dark";
+    applyNativeTheme(initialTheme);
+
+    const notifications = new NotificationService(() => mainWindow, switchFromNotification, appIconPath);
+    usagePoller = new UsagePoller(profileStore, notifications, broadcastStateChanged);
+    activeProfileSyncer = new ActiveProfileSyncer(profileStore, processManager, broadcastStateChanged);
+    registerIpc();
+
+    mainWindow = createWindow();
+    createTray();
+    if (initialState.settings.serviceRunning) {
+      usagePoller.start();
+    }
+    activeProfileSyncer.start();
+
+    initializeAutoUpdater();
+
+    app.on("activate", () => {
+      if (!mainWindow) {
+        mainWindow = createWindow();
+      }
+    });
+  });
+}
 
 function initializeAutoUpdater(): void {
   // Only check for updates when packaged.
