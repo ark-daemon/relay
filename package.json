@@ -1,6 +1,6 @@
 {
  "name": "relay",
- "version": "0.2.8",
+ "version": "0.2.9",
  "private": true,
  "description": "Account switcher for the ChatGPT desktop app.",
  "main": "dist-electron/electron/main.js",
