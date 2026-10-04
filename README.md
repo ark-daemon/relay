@@ -4,7 +4,7 @@
   # Relay
 
   **Account manager for ChatGPT Desktop**  
-  *Switches accounts in `~/.codex` with encrypted profiles and automatic failover*
+  *Relay switches accounts in `~/.codex` with encrypted profiles and automatic failover*
 
   [![Release](https://img.shields.io/github/v/release/ark-daemon/relay?style=flat-square)](https://github.com/ark-daemon/relay/releases)
   [![Build](https://img.shields.io/github/actions/workflow/status/ark-daemon/relay/build.yml?style=flat-square&label=Build)](https://github.com/ark-daemon/relay/actions)
@@ -23,23 +23,23 @@
 ---
 
 Relay is a desktop application for Windows, macOS, and Linux.
-It helps you hold multiple ChatGPT and Codex accounts.
+It helps you manage multiple ChatGPT and Codex accounts.
 You can switch between accounts in two seconds.
 You do not edit configuration files manually.
 
 The application encrypts stored credentials on your computer.
 It saves each account state in `~/.codex`.
-It switches the active profile and restarts the desktop application cleanly.
+It switches the active profile and restarts the desktop application.
 
 > [!NOTE]
-> There is no telemetry and no analytics.
+> The application contains no telemetry and no analytics.
 > Credentials stay on your computer.
 > The application connects only to the OpenAI endpoints `auth.openai.com` and `chatgpt.com`.
 
 ## Requirements
 
 - Install the desktop application for OpenAI Codex. On Windows, the package name is `OpenAI.Codex`. The process name is `ChatGPT.exe` or `Codex.exe`.
-- Node.js 22 or later (necessary only if you build from source code).
+- Install Node.js 22 or later if you build the project from source code.
 
 This application manages Codex agent sessions and quotas.
 It does not manage chat history on the ChatGPT web site.
@@ -65,21 +65,21 @@ The application does not install updates silently in the background.
 
 ## Features
 
-- **Fast account switch:** Decrypts the target profile, writes files into `~/.codex`, closes the desktop application, and starts it again.
-- **Quota status monitor:** Refreshes the quota of each account at regular intervals (default is 20 minutes). Shows five-hour, weekly, monthly, and credit limits.
-- **Automatic failover switch:** When active quota drops below a threshold (default 10%), Relay selects the ready account with the highest quota.
-- **Automatic token refresh:** Refreshes an expired access token before a switch if a refresh token is available.
-- **Login capture:** Opens the web browser login page, captures authentication files, and saves a new profile.
-- **Import and export:** Back up all profiles to an encrypted JSON file with a passphrase.
-- **Single-instance lock:** Focuses the active window if you open Relay again. Prevents duplicate tray icons.
-- **System tray integration:** Switch accounts and monitor quotas from the system tray. The application minimizes to the tray when you close the window.
-- **System notifications:** Shows alerts for low quotas and restored access on Windows and macOS.
-- **Color theme:** Follows the OS theme or your selection in Settings.
+- **Account switch:** Relay decrypts the target profile, writes files into `~/.codex`, closes the desktop application, and starts it again.
+- **Quota status monitor:** Relay refreshes account quotas at regular intervals (default: 20 minutes). The monitor shows five-hour, weekly, monthly, and credit limits.
+- **Automatic failover switch:** When the active quota drops below a threshold (default: 10%), Relay selects the ready account with the highest quota.
+- **Automatic token refresh:** Relay refreshes an expired access token before an account switch if a refresh token is available.
+- **Login capture:** Relay opens the web browser login page, captures authentication files, and saves a new profile.
+- **Profile export and import:** Export and import all profiles in an encrypted JSON file with a passphrase.
+- **Single-instance lock:** Relay focuses the active window if you open the application again. This lock prevents duplicate tray icons.
+- **System tray integration:** You can switch accounts and monitor quotas from the system tray. The application minimizes to the tray when you close the window.
+- **System notifications:** Relay shows alerts for low quotas and restored access on Windows and macOS.
+- **Color theme:** Relay follows the operating system theme or your selection in Settings.
 
 ## How it works
 
 Relay stores profiles in the application data directory.
-When you switch an account, Relay does these steps:
+When you switch an account, Relay completes these steps:
 
 1. Closes the desktop application processes (`ChatGPT.exe` or `Codex`).
 2. Saves the managed files of the active account in its profile folder.
@@ -98,14 +98,14 @@ When you switch an account, Relay does these steps:
 
 Relay does not separate conversation history for each account.
 Codex stores all threads in shared database files.
-If Relay replaced these database files, it can cause damage to thread history.
+If Relay replaces these database files, the replacement damages thread history.
 
 ## Security
 
 Threat model: A local attacker with file system access, or a compromised renderer process.
 
 - **Encryption at rest:** Authentication files use Electron `safeStorage` (Windows DPAPI, macOS Keychain, or Linux libsecret). Files have the `CMENC1:` prefix.
-- **Passphrase fallback:** If no OS keychain is available, Relay encrypts authentication files with AES-256-GCM (`CMPWD1:`). You enter a session passphrase at startup.
+- **Passphrase fallback:** If no operating system keychain is available, Relay encrypts authentication files with AES-256-GCM (`CMPWD1:`). You enter a session passphrase at startup.
 - **Fail-safe default:** If no keychain or passphrase is available, Relay does not write credentials in plain text.
 - **Hardened renderer:** The renderer uses `contextIsolation` and `sandbox`. It does not expose Node.js APIs. IPC accepts messages only from trusted application frames.
 - **Restricted network access:** Relay connects only to `auth.openai.com` (token refresh) and `chatgpt.com` (quota status).
@@ -128,7 +128,7 @@ Relay supports these names:
 - Session directory: `~/.codex`
 
 If an update changes process names or paths, account switch operations can stop.
-Open an issue on GitHub with your OS name, application version, and the active process list.
+Open an issue on GitHub with your operating system name, application version, and the active process list.
 
 ## Development
 
